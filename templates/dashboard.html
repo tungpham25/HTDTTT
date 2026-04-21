@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard — PTIT Major Advisor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#2d2d2d}
+  .header{background:#1a237e;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
+  .header h1{font-size:18px;font-weight:600}
+  .nav a{color:#fff;text-decoration:none;font-size:13px;margin-left:16px;opacity:.8}
+  .nav a:hover{opacity:1}
+  .container{max-width:1100px;margin:0 auto;padding:20px 16px}
+  /* Metric cards */
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px}
+  .metric{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.08);text-align:center}
+  .metric .val{font-size:28px;font-weight:700;color:#1a237e}
+  .metric .lbl{font-size:12px;color:#888;margin-top:4px}
+  .metric .sub{font-size:11px;color:#aaa;margin-top:2px}
+  /* Grid layout */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+  @media(max-width:720px){.grid2,.grid3{grid-template-columns:1fr}}
+  .card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  .card h2{font-size:13px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+  .chart-wrap{position:relative;height:220px}
+  .chart-wrap-tall{position:relative;height:280px}
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;padding:8px 10px;background:#f5f6fa;color:#666;font-weight:600;font-size:12px;border-bottom:1px solid #e8e8e8}
+  td{padding:8px 10px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+  tr:hover td{background:#fafafa}
+  .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+  .badge.ok{background:#e8f5e9;color:#2e7d32}
+  .badge.warn{background:#fff3e0;color:#e65100}
+  .badge.adj{background:#e3f2fd;color:#1565c0}
+  /* RIASEC avg */
+  .riasec-bar{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px}
+  .riasec-bar .dim{width:18px;font-weight:700;color:#1a237e}
+  .riasec-bar .bar{flex:1;height:10px;background:#e8eaf6;border-radius:5px;overflow:hidden}
+  .riasec-bar .fill{height:10px;background:#3949ab;border-radius:5px}
+  .riasec-bar .num{width:40px;text-align:right;color:#555;font-size:12px}
+  .empty{text-align:center;color:#aaa;padding:40px 0;font-size:14px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Dashboard — Hệ thống tư vấn ngành học PTIT</h1>
+  <nav class="nav">
+    <a href="/survey">Làm khảo sát</a>
+    <a href="/api/responses">API</a>
+  </nav>
+</div>
+
+<div class="container">
+
+  <!-- Metric cards -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="val">{{ total }}</div>
+      <div class="lbl">Tổng số lượt khảo sát</div>
+    </div>
+    <div class="metric">
+      <div class="val">{{ adjusted }}</div>
+      <div class="lbl">KBS điều chỉnh ML</div>
+      <div class="sub">{{ adjusted_pct }}% tổng số</div>
+    </div>
+    <div class="metric">
+      <div class="val">{{ dist.values() | list | max if total else 0 }}</div>
+      <div class="lbl">Ngành phổ biến nhất</div>
+      <div class="sub">{{ dist | dictsort(by='value',reverse=true) | first | first if total else '—' }}</div>
+    </div>
+    <div class="metric">
+      <div class="val">{{ dist.values() | list | min if total else 0 }}</div>
+      <div class="lbl">Ngành ít nhất</div>
+      <div class="sub">{{ dist | dictsort(by='value') | first | first if total else '—' }}</div>
+    </div>
+  </div>
+
+  {% if total == 0 %}
+  <div class="card"><div class="empty">Chưa có dữ liệu. Hãy <a href="/survey">làm khảo sát</a> hoặc chạy <code>python seed_data.py</code> để tạo dữ liệu mẫu.</div></div>
+  {% else %}
+
+  <div class="grid2">
+    <!-- Phân phối ngành -->
+    <div class="card">
+      <h2>Phân phối ngành được tư vấn</h2>
+      <div class="chart-wrap">
+        <canvas id="distChart" role="img" aria-label="Biểu đồ phân phối ngành"></canvas>
+      </div>
+    </div>
+
+    <!-- RIASEC trung bình -->
+    <div class="card">
+      <h2>Điểm RIASEC trung bình (%)</h2>
+      {% for d, lbl in [('R','Thực hành'),('I','Phân tích'),('A','Sáng tạo'),('S','Xã hội'),('E','Kinh doanh'),('C','Tổ chức')] %}
+      <div class="riasec-bar">
+        <span class="dim">{{ d }}</span>
+        <div class="bar"><div class="fill" style="width:{{ avg_riasec[d] }}%"></div></div>
+        <span class="num">{{ avg_riasec[d] }}%</span>
+      </div>
+      {% endfor %}
+      <div class="chart-wrap" style="height:180px;margin-top:14px">
+        <canvas id="radarAvg" role="img" aria-label="Radar RIASEC trung bình"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <!-- Confidence distribution -->
+    <div class="card">
+      <h2>Phân phối độ tự tin (confidence)</h2>
+      <div class="chart-wrap">
+        <canvas id="confChart" role="img" aria-label="Phân phối confidence"></canvas>
+      </div>
+    </div>
+
+    <!-- Donut ngành -->
+    <div class="card">
+      <h2>Tỷ lệ từng ngành</h2>
+      <div class="chart-wrap">
+        <canvas id="donutChart" role="img" aria-label="Donut chart tỷ lệ ngành"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent responses table -->
+  <div class="card">
+    <h2>20 kết quả gần nhất</h2>
+    {% if recent %}
+    <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã</th><th>Thời gian</th>
+          <th>Ngành 1 (KBS)</th><th>Ngành 2</th>
+          <th>Confidence</th><th>Xác nhận</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in recent %}
+        <tr>
+          <td style="font-family:monospace;color:#888">{{ r.id }}</td>
+          <td>{{ r.time }}</td>
+          <td><strong>{{ r.top1 }}</strong></td>
+          <td style="color:#888">{{ r.top2 }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="flex:1;height:6px;background:#e0e0e0;border-radius:3px;max-width:80px">
+                <div style="height:6px;border-radius:3px;background:{% if r.conf > 50 %}#2e7d32{% elif r.conf > 20 %}#f57c00{% else %}#c62828{% endif %};width:{{ r.conf }}%"></div>
+              </div>
+              <span style="font-size:12px;color:#555">{{ r.conf }}%</span>
+            </div>
+          </td>
+          <td>
+            <span class="badge {% if r.confirmed %}ok{% else %}warn{% endif %}">
+              {% if r.confirmed %}✓{% else %}⚠{% endif %}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty">Chưa có dữ liệu</div>
+    {% endif %}
+  </div>
+
+  {% endif %}
+</div>
+
+<script>
+const COLORS = ['#1a237e','#0288d1','#d81b60','#f57c00','#2e7d32','#6a1b9a'];
+const LABELS = {{ dist_labels | tojson }};
+const VALUES = {{ dist_values | tojson }};
+
+// Bar chart phân phối
+new Chart(document.getElementById('distChart'), {
+  type: 'bar',
+  data: {
+    labels: LABELS,
+    datasets:[{label:'Số lượt',data:VALUES,backgroundColor:COLORS,borderRadius:6}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{y:{beginAtZero:true,ticks:{precision:0}}}}
+});
+
+// Radar RIASEC trung bình
+{% if total %}
+new Chart(document.getElementById('radarAvg'), {
+  type:'radar',
+  data:{
+    labels:['R','I','A','S','E','C'],
+    datasets:[{data:[{{avg_riasec.R}},{{avg_riasec.I}},{{avg_riasec.A}},{{avg_riasec.S}},{{avg_riasec.E}},{{avg_riasec.C}}],
+      fill:true,backgroundColor:'rgba(26,35,126,.15)',borderColor:'#1a237e',pointBackgroundColor:'#1a237e',pointRadius:4}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{r:{min:0,max:100,ticks:{font:{size:9},stepSize:50},pointLabels:{font:{size:10}}}}}
+});
+
+// Confidence distribution
+const confLabels = {{ conf_dist.keys() | list | tojson }};
+const confVals   = {{ conf_dist.values() | list | tojson }};
+new Chart(document.getElementById('confChart'),{
+  type:'bar',
+  data:{labels:confLabels,datasets:[{label:'Số lượt',data:confVals,
+    backgroundColor:['#ef9a9a','#ffcc80','#fff176','#a5d6a7','#80cbc4'],borderRadius:6}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{y:{beginAtZero:true,ticks:{precision:0}}}}
+});
+
+// Donut
+new Chart(document.getElementById('donutChart'),{
+  type:'doughnut',
+  data:{labels:LABELS,datasets:[{data:VALUES,backgroundColor:COLORS,borderWidth:2,borderColor:'#fff'}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:8}}}}
+});
+{% endif %}
+</script>
+</body>
+</html>

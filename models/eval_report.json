@@ -1,0 +1,260 @@
+{
+  "generated_at": "2026-04-21T13:40:51.123350",
+  "algorithm": "GradientBoostingClassifier",
+  "best_params": {
+    "learning_rate": 0.18384233835331837,
+    "max_depth": 3,
+    "min_samples_leaf": 9,
+    "n_estimators": 367,
+    "subsample": 0.7323592099410596
+  },
+  "status": "OK",
+  "diagnosis": "Train-test gap = 0.015 ≤ 0.08. Model ổn định.",
+  "train": {
+    "accuracy": 0.9382,
+    "f1_macro": 0.9382,
+    "f1_weighted": 0.9382,
+    "top3_accuracy": 0.9998,
+    "per_class": {
+      "ATTT": {
+        "precision": 0.8416,
+        "recall": 0.9746,
+        "f1-score": 0.9032,
+        "support": 3499.0
+      },
+      "CNTT": {
+        "precision": 1.0,
+        "recall": 0.8024,
+        "f1-score": 0.8903,
+        "support": 3476.0
+      },
+      "KETOAN": {
+        "precision": 0.8719,
+        "recall": 0.9822,
+        "f1-score": 0.9238,
+        "support": 3492.0
+      },
+      "MKT": {
+        "precision": 0.9997,
+        "recall": 0.9197,
+        "f1-score": 0.958,
+        "support": 3488.0
+      },
+      "TMDT": {
+        "precision": 0.966,
+        "recall": 0.9502,
+        "f1-score": 0.958,
+        "support": 3495.0
+      },
+      "TTDPT": {
+        "precision": 0.992,
+        "recall": 1.0,
+        "f1-score": 0.996,
+        "support": 3473.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        3410,
+        0,
+        89,
+        0,
+        0,
+        0
+      ],
+      [
+        563,
+        2789,
+        100,
+        0,
+        0,
+        24
+      ],
+      [
+        54,
+        0,
+        3430,
+        0,
+        7,
+        1
+      ],
+      [
+        14,
+        0,
+        155,
+        3208,
+        110,
+        1
+      ],
+      [
+        11,
+        0,
+        160,
+        1,
+        3321,
+        2
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        3473
+      ]
+    ]
+  },
+  "test": {
+    "accuracy": 0.9226,
+    "f1_macro": 0.9228,
+    "f1_weighted": 0.9228,
+    "top3_accuracy": 0.999,
+    "per_class": {
+      "ATTT": {
+        "precision": 0.7998,
+        "recall": 0.9593,
+        "f1-score": 0.8723,
+        "support": 1499.0
+      },
+      "CNTT": {
+        "precision": 1.0,
+        "recall": 0.7745,
+        "f1-score": 0.8729,
+        "support": 1490.0
+      },
+      "KETOAN": {
+        "precision": 0.8593,
+        "recall": 0.9592,
+        "f1-score": 0.9065,
+        "support": 1496.0
+      },
+      "MKT": {
+        "precision": 0.9993,
+        "recall": 0.903,
+        "f1-score": 0.9487,
+        "support": 1495.0
+      },
+      "TMDT": {
+        "precision": 0.95,
+        "recall": 0.9393,
+        "f1-score": 0.9446,
+        "support": 1498.0
+      },
+      "TTDPT": {
+        "precision": 0.9841,
+        "recall": 1.0,
+        "f1-score": 0.992,
+        "support": 1489.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        1438,
+        0,
+        57,
+        0,
+        2,
+        2
+      ],
+      [
+        280,
+        1154,
+        39,
+        0,
+        0,
+        17
+      ],
+      [
+        53,
+        0,
+        1435,
+        0,
+        5,
+        3
+      ],
+      [
+        5,
+        0,
+        71,
+        1350,
+        67,
+        2
+      ],
+      [
+        22,
+        0,
+        68,
+        1,
+        1407,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1489
+      ]
+    ]
+  },
+  "cv": {
+    "scores": [
+      0.9324,
+      0.9311,
+      0.9343,
+      0.9403,
+      0.9384
+    ],
+    "mean": 0.9353,
+    "std": 0.0035
+  },
+  "feature_importance": {
+    "R_norm": 0.1126,
+    "I_norm": 0.1345,
+    "A_norm": 0.3204,
+    "S_norm": 0.0074,
+    "E_norm": 0.1992,
+    "C_norm": 0.2259
+  },
+  "calibration": [
+    {
+      "bin": "0.2–0.4",
+      "mean_conf": 0.363,
+      "accuracy": 0.56,
+      "count": 75
+    },
+    {
+      "bin": "0.4–0.6",
+      "mean_conf": 0.526,
+      "accuracy": 0.726,
+      "count": 1694
+    },
+    {
+      "bin": "0.6–0.8",
+      "mean_conf": 0.702,
+      "accuracy": 0.919,
+      "count": 2230
+    },
+    {
+      "bin": "0.8–1.0",
+      "mean_conf": 0.922,
+      "accuracy": 0.997,
+      "count": 4968
+    }
+  ],
+  "recommendations": [
+    "Feature quan trọng nhất: A_norm (importance=0.320).",
+    "Ngành tốt nhất: TTDPT (F1=0.99)."
+  ],
+  "class_names": [
+    "ATTT",
+    "CNTT",
+    "KETOAN",
+    "MKT",
+    "TMDT",
+    "TTDPT"
+  ],
+  "n_train": 20923,
+  "n_test": 8967
+}

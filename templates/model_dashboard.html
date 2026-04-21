@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Đánh giá Model — PTIT</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#2d2d2d}
+  .header{background:#1a237e;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
+  .header h1{font-size:18px;font-weight:600}
+  .nav a{color:#fff;text-decoration:none;font-size:13px;margin-left:16px;opacity:.8}
+  .nav a:hover{opacity:1}
+  .container{max-width:1100px;margin:0 auto;padding:20px 16px}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+  .metric{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.08);text-align:center}
+  .metric .val{font-size:26px;font-weight:700}
+  .metric .lbl{font-size:12px;color:#888;margin-top:4px}
+  .metric .sub{font-size:11px;color:#aaa;margin-top:2px}
+  .val.ok{color:#2e7d32} .val.warn{color:#f57c00} .val.bad{color:#c62828}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+  @media(max-width:720px){.grid2,.grid3{grid-template-columns:1fr}}
+  .card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  .card h2{font-size:13px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+  .chart-wrap{position:relative;height:220px}
+  .chart-wrap-lg{position:relative;height:280px}
+  /* Status banner */
+  .status-ok{background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:14px 18px;margin-bottom:16px}
+  .status-warn{background:#fff3e0;border:1px solid #ffcc80;border-radius:10px;padding:14px 18px;margin-bottom:16px}
+  .status-bad{background:#ffebee;border:1px solid #ef9a9a;border-radius:10px;padding:14px 18px;margin-bottom:16px}
+  .status-title{font-weight:600;font-size:15px;margin-bottom:6px}
+  .status-ok .status-title{color:#2e7d32}
+  .status-warn .status-title{color:#e65100}
+  .status-bad .status-title{color:#c62828}
+  .status-desc{font-size:13px;color:#555}
+  /* Confusion matrix */
+  .cm-wrap{overflow-x:auto}
+  table.cm{border-collapse:collapse;font-size:12px;width:100%}
+  table.cm th{padding:6px 8px;background:#f5f6fa;text-align:center;font-weight:600;color:#555}
+  table.cm td{padding:6px 8px;text-align:center;border:1px solid #f0f0f0;font-size:12px}
+  table.cm td.diag{font-weight:700;color:#1a237e}
+  /* Recommendations */
+  .rec-item{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
+  .rec-item:last-child{border:none}
+  .rec-dot{width:6px;height:6px;border-radius:50%;background:#42a5f5;margin-top:5px;flex-shrink:0}
+  /* Compare row */
+  .compare-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px}
+  .cbar-wrap{flex:1;height:8px;background:#e0e0e0;border-radius:4px;position:relative}
+  .cbar{height:8px;border-radius:4px;position:absolute;left:0;top:0;transition:width .5s}
+  .cbar.train{background:#42a5f5}
+  .cbar.test{background:#1a237e}
+  .clabel{width:90px;font-weight:500}
+  .cval{width:50px;text-align:right;color:#555}
+  /* No report */
+  .no-report{text-align:center;padding:60px;color:#aaa;font-size:14px}
+  .btn{display:inline-block;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:#1a237e;color:#fff}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Đánh giá ML Model — PTIT Major Advisor</h1>
+  <nav class="nav">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/survey">Khảo sát</a>
+  </nav>
+</div>
+
+<div class="container">
+{% if not report %}
+  <div class="card">
+    <div class="no-report">
+      Chưa có báo cáo đánh giá.<br><br>
+      Chạy: <code>python ml/evaluate_model.py</code><br><br>
+      <a href="/model-dashboard" class="btn">Làm mới</a>
+    </div>
+  </div>
+{% else %}
+
+  <!-- Status banner -->
+  {% if report.status == 'OK' %}
+  <div class="status-ok">
+    <div class="status-title">✓ Model ổn định — không có dấu hiệu overfitting</div>
+    <div class="status-desc">{{ report.diagnosis }}</div>
+  </div>
+  {% elif report.status == 'MILD_OVERFIT' %}
+  <div class="status-warn">
+    <div class="status-title">⚠ Overfitting nhẹ — nên điều chỉnh hyperparameter</div>
+    <div class="status-desc">{{ report.diagnosis }}</div>
+  </div>
+  {% elif report.status == 'OVERFIT' %}
+  <div class="status-bad">
+    <div class="status-title">✗ Overfitting — Model học thuộc tập train</div>
+    <div class="status-desc">{{ report.diagnosis }}</div>
+  </div>
+  {% else %}
+  <div class="status-warn">
+    <div class="status-title">⚠ Underfitting — Model chưa đủ khả năng phân loại</div>
+    <div class="status-desc">{{ report.diagnosis }}</div>
+  </div>
+  {% endif %}
+
+  <!-- Metric cards -->
+  <div class="metrics">
+    {% for lbl, val, note in [
+      ('Test Accuracy', report.test.accuracy, 'Tỷ lệ đúng trên tập test'),
+      ('Test F1-Macro', report.test.f1_macro, 'Trung bình F1 6 ngành'),
+      ('Test Top-3 Acc', report.test.top3_accuracy, 'Ngành đúng trong top 3'),
+      ('CV F1-Macro', report.cv.mean, 'Cross-val ± ' ~ report.cv.std),
+    ] %}
+    <div class="metric">
+      <div class="val {% if val >= 0.80 %}ok{% elif val >= 0.65 %}warn{% else %}bad{% endif %}">
+        {{ "%.1f"|format(val*100) }}%
+      </div>
+      <div class="lbl">{{ lbl }}</div>
+      <div class="sub">{{ note }}</div>
+    </div>
+    {% endfor %}
+    <div class="metric">
+      <div class="val" style="color:#1a237e">{{ report.n_train }}</div>
+      <div class="lbl">Mẫu train</div>
+    </div>
+    <div class="metric">
+      <div class="val" style="color:#555">{{ report.n_test }}</div>
+      <div class="lbl">Mẫu test</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <!-- Train vs Test so sánh -->
+    <div class="card">
+      <h2>So sánh Train vs Test</h2>
+      {% for lbl, tk, vk in [
+        ('Accuracy','train','accuracy'),
+        ('F1-Macro','train','f1_macro'),
+        ('F1-Weighted','train','f1_weighted'),
+        ('Top-3 Acc','train','top3_accuracy'),
+      ] %}
+      <div style="margin-bottom:12px;font-size:13px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-weight:500;color:#555">{{ lbl }}</span>
+          <span style="color:#888;font-size:12px">
+            Train: {{ "%.3f"|format(report.train[vk]) }} &nbsp;|&nbsp;
+            Test: {{ "%.3f"|format(report.test[vk]) }}
+            &nbsp;<span style="color:{% if report.train[vk]-report.test[vk]>0.1 %}#c62828{% else %}#2e7d32{% endif %}">
+              (Δ={{ "%.3f"|format(report.train[vk]-report.test[vk]) }})
+            </span>
+          </span>
+        </div>
+        <div style="position:relative;height:10px;background:#f5f5f5;border-radius:5px;overflow:hidden">
+          <div style="position:absolute;height:10px;border-radius:5px;background:#90caf9;width:{{ (report.train[vk]*100)|round }}%"></div>
+          <div style="position:absolute;height:5px;top:2.5px;border-radius:3px;background:#1a237e;width:{{ (report.test[vk]*100)|round }}%"></div>
+        </div>
+      </div>
+      {% endfor %}
+      <div style="font-size:11px;color:#aaa;margin-top:8px">
+        <span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px">
+          <span style="width:12px;height:8px;background:#90caf9;border-radius:2px;display:inline-block"></span>Train
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:4px">
+          <span style="width:12px;height:4px;background:#1a237e;border-radius:2px;display:inline-block"></span>Test
+        </span>
+      </div>
+    </div>
+
+    <!-- Per-class F1 -->
+    <div class="card">
+      <h2>F1-Score theo ngành (test set)</h2>
+      <div class="chart-wrap">
+        <canvas id="f1Chart" role="img" aria-label="F1 score theo từng ngành"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <!-- Confusion Matrix -->
+    <div class="card">
+      <h2>Confusion Matrix (test set)</h2>
+      <div class="cm-wrap">
+        <table class="cm">
+          <thead>
+            <tr>
+              <th>Thực \ Dự đoán</th>
+              {% for c in report.class_names %}<th>{{ c }}</th>{% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for i, row in enumerate(report.test.confusion_matrix) %}
+            <tr>
+              <th>{{ report.class_names[i] }}</th>
+              {% for j, val in enumerate(row) %}
+              <td class="{% if i==j %}diag{% endif %}"
+                  style="background:rgba(26,35,126,{{ (val / row|sum * 0.7)|round(2) if row|sum else 0 }})">
+                {{ val }}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:11px;color:#aaa;margin-top:8px">
+        Đường chéo (đậm) = dự đoán đúng. Số ngoài đường chéo = nhầm lẫn.
+      </div>
+    </div>
+
+    <!-- Feature Importance -->
+    <div class="card">
+      <h2>Feature Importance</h2>
+      <div class="chart-wrap">
+        <canvas id="fiChart" role="img" aria-label="Feature importance"></canvas>
+      </div>
+      <div style="font-size:11px;color:#aaa;margin-top:8px">
+        Chiều RIASEC nào ảnh hưởng nhiều nhất đến quyết định của model.
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <!-- Calibration -->
+    <div class="card">
+      <h2>Calibration — Xác suất có tin cậy không?</h2>
+      <div class="chart-wrap">
+        <canvas id="calChart" role="img" aria-label="Calibration chart"></canvas>
+      </div>
+      <div style="font-size:11px;color:#aaa;margin-top:8px">
+        Đường lý tưởng = đường chéo. Model tốt khi Mean Confidence ≈ Accuracy thực tế.
+      </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="card">
+      <h2>Khuyến nghị điều chỉnh</h2>
+      {% for rec in report.recommendations %}
+      <div class="rec-item">
+        <div class="rec-dot"></div>
+        <div>{{ rec }}</div>
+      </div>
+      {% endfor %}
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0;font-size:12px;color:#888">
+        Được tạo: {{ report.generated_at[:16].replace('T',' ') }}<br>
+        Chạy lại: <code>python ml/evaluate_model.py</code>
+      </div>
+    </div>
+  </div>
+
+{% endif %}
+</div>
+
+<script>
+{% if report %}
+const classes = {{ report.class_names | tojson }};
+const f1s  = classes.map(c => {{ report.test.per_class | tojson }}[c]['f1-score']);
+const fi   = {{ report.feature_importance | tojson }};
+const fiK  = Object.keys(fi);
+const fiV  = Object.values(fi);
+const cal  = {{ report.calibration | tojson }};
+
+// F1 per class
+new Chart(document.getElementById('f1Chart'), {
+  type:'bar',
+  data:{
+    labels: classes,
+    datasets:[
+      {label:'Train F1', data: classes.map(c => {{ report.train.per_class|tojson }}[c]['f1-score']),
+       backgroundColor:'rgba(66,165,245,.4)', borderColor:'#42a5f5', borderWidth:1.5, borderRadius:4},
+      {label:'Test F1',  data: f1s,
+       backgroundColor:'rgba(26,35,126,.7)', borderColor:'#1a237e', borderWidth:1.5, borderRadius:4},
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    scales:{y:{min:0,max:1,ticks:{callback:v=>Math.round(v*100)+'%'}}},
+    plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}
+});
+
+// Feature importance
+new Chart(document.getElementById('fiChart'),{
+  type:'bar',
+  data:{labels:fiK, datasets:[{data:fiV, backgroundColor:'#3949ab', borderRadius:4}]},
+  options:{indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{min:0,ticks:{callback:v=>(v*100).toFixed(1)+'%'}}}}
+});
+
+// Calibration
+new Chart(document.getElementById('calChart'),{
+  type:'scatter',
+  data:{datasets:[
+    {label:'Mean Confidence',
+     data: cal.map(c=>({x:c.mean_conf, y:c.accuracy, r:Math.max(4, c.count/10)})),
+     backgroundColor:'rgba(26,35,126,.7)', pointRadius:8},
+    {label:'Lý tưởng',
+     data:[{x:0,y:0},{x:1,y:1}],
+     type:'line', borderColor:'#ef9a9a', borderDash:[4,4], borderWidth:1.5,
+     pointRadius:0, fill:false},
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    scales:{x:{min:0,max:1,title:{display:true,text:'Mean Confidence'}},
+            y:{min:0,max:1,title:{display:true,text:'Accuracy thực tế'}}},
+    plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}
+});
+{% endif %}
+</script>
+</body>
+</html>

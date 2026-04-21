@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Khảo sát thiên hướng nghề nghiệp — PTIT</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',sans-serif;background:#f5f6fa;color:#2d2d2d;min-height:100vh}
+  .header{background:#1a237e;color:#fff;padding:20px 0;text-align:center}
+  .header h1{font-size:22px;font-weight:600}
+  .header p{font-size:13px;opacity:.8;margin-top:4px}
+  .progress-bar{background:#e0e0e0;height:6px}
+  .progress-fill{background:#42a5f5;height:6px;transition:width .3s}
+  .progress-label{text-align:center;font-size:12px;color:#666;padding:6px 0}
+  .container{max-width:800px;margin:0 auto;padding:24px 16px}
+  .group-card{background:#fff;border-radius:12px;padding:24px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .group-title{font-size:16px;font-weight:600;color:#1a237e;margin-bottom:4px}
+  .group-desc{font-size:13px;color:#888;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #f0f0f0}
+  .question{margin-bottom:20px}
+  .q-text{font-size:14px;font-weight:500;margin-bottom:6px;display:flex;gap:8px;align-items:flex-start}
+  .q-num{color:#42a5f5;font-weight:700;min-width:28px}
+  .q-hint{font-size:12px;color:#999;margin-bottom:10px;margin-left:36px;font-style:italic}
+  .scale{display:flex;gap:6px;margin-left:36px;flex-wrap:wrap}
+  .scale label{flex:1;min-width:52px;text-align:center;cursor:pointer}
+  .scale input{display:none}
+  .scale span{display:block;padding:8px 4px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:12px;transition:all .15s}
+  .scale input:checked + span{background:#1a237e;color:#fff;border-color:#1a237e;font-weight:600}
+  .scale label:hover span{border-color:#42a5f5;background:#e3f2fd}
+  .scale-labels{display:flex;justify-content:space-between;margin-left:36px;font-size:11px;color:#aaa;margin-top:4px}
+  .btn-submit{display:block;width:100%;padding:16px;background:#1a237e;color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;margin-top:8px}
+  .btn-submit:hover{background:#283593}
+  .btn-submit:disabled{background:#b0bec5;cursor:not-allowed}
+  .warning-box{background:#fff3e0;border:1px solid #ffb74d;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#e65100;display:none}
+  .sticky-progress{position:sticky;top:0;z-index:100;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.1)}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Khảo sát thiên hướng nghề nghiệp</h1>
+  <p>Hãy cho biết mức độ yêu thích của bạn với từng hoạt động — không có câu trả lời đúng hay sai</p>
+</div>
+
+<div class="sticky-progress">
+  <div class="progress-bar"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+  <div class="progress-label" id="prog-label">0 / 48 câu đã trả lời</div>
+</div>
+
+<div class="container">
+  <div class="warning-box" id="warn-box">Vui lòng trả lời tất cả 48 câu hỏi trước khi gửi.</div>
+
+  <form method="POST" action="/submit" id="survey-form">
+    {% set groups = [
+      ("Nhóm 1 — Hoạt động thực hành & kỹ thuật",
+       "Đánh giá mức độ bạn thích làm việc với công cụ, máy móc và môi trường thực địa.", "R"),
+      ("Nhóm 2 — Hoạt động nghiên cứu & phân tích",
+       "Đánh giá mức độ bạn thích tìm hiểu, điều tra và giải quyết vấn đề trí tuệ.", "I"),
+      ("Nhóm 3 — Hoạt động sáng tạo & nghệ thuật",
+       "Đánh giá mức độ bạn thích biểu đạt ý tưởng qua hình thức nghệ thuật và sáng tạo.", "A"),
+      ("Nhóm 4 — Hoạt động hỗ trợ & tương tác xã hội",
+       "Đánh giá mức độ bạn thích làm việc với con người, hỗ trợ và chăm sóc người khác.", "S"),
+      ("Nhóm 5 — Hoạt động kinh doanh & lãnh đạo",
+       "Đánh giá mức độ bạn thích quản lý, thuyết phục và đạt mục tiêu trong kinh doanh.", "E"),
+      ("Nhóm 6 — Hoạt động tổ chức & quản lý dữ liệu",
+       "Đánh giá mức độ bạn thích sắp xếp, xử lý thông tin theo quy trình có cấu trúc.", "C"),
+    ] %}
+    {% for gtitle, gdesc, gcode in groups %}
+    <div class="group-card">
+      <div class="group-title">{{ gtitle }}</div>
+      <div class="group-desc">{{ gdesc }}</div>
+      {% for q in questions if q.id.startswith(gcode) %}
+      <div class="question">
+        <div class="q-text">
+          <span class="q-num">{{ loop.index }}.</span>
+          <span>{{ q.text }}</span>
+        </div>
+        <div class="q-hint">{{ q.hint }}</div>
+        <div class="scale">
+          {% for v, lbl in [(1,"Rất không thích"),(2,"Không thích"),(3,"Trung lập"),(4,"Thích"),(5,"Rất thích")] %}
+          <label>
+            <input type="radio" name="{{ q.id }}" value="{{ v }}" onchange="updateProgress()">
+            <span>{{ v }}<br><small>{{ lbl }}</small></span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+
+    <button type="button" class="btn-submit" id="submit-btn" onclick="checkAndSubmit()">
+      Xem kết quả tư vấn ngành học
+    </button>
+  </form>
+</div>
+
+<script>
+const total = 48;
+function updateProgress() {
+  const answered = document.querySelectorAll('input[type=radio]:checked').length;
+  const pct = Math.round(answered / total * 100);
+  document.getElementById('prog').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = `${answered} / ${total} câu đã trả lời`;
+  document.getElementById('submit-btn').disabled = answered < total;
+}
+function checkAndSubmit() {
+  const answered = document.querySelectorAll('input[type=radio]:checked').length;
+  if (answered < total) {
+    document.getElementById('warn-box').style.display = 'block';
+    window.scrollTo({top: 0, behavior: 'smooth'});
+    return;
+  }
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('submit-btn').textContent = 'Đang xử lý...';
+  document.getElementById('survey-form').submit();
+}
+updateProgress();
+</script>
+</body>
+</html>

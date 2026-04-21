@@ -1,0 +1,18 @@
+{
+  "algorithm": "GradientBoostingClassifier",
+  "tuning_method": "RandomizedSearchCV",
+  "n_iter": 50,
+  "cv_folds": 5,
+  "best_params": {
+    "learning_rate": 0.18384233835331837,
+    "max_depth": 3,
+    "min_samples_leaf": 9,
+    "n_estimators": 367,
+    "subsample": 0.7323592099410596
+  },
+  "best_cv_f1_macro": 0.9935,
+  "test_accuracy": 0.9226,
+  "test_f1_macro": 0.9228,
+  "test_f1_weighted": 0.9228,
+  "test_top3_accuracy": 0.999
+}

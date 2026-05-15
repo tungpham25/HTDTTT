@@ -1,0 +1,69 @@
+Folder PATH listing
+Volume serial number is 3C18-0511
+C:.
+|   app.py
+|   debug_xlsx.py
+|   run_pipeline.py
+|   seed_data.py
+|   tree.txt
+|   
++---.claude
+|       settings.local.json
+|       
++---.vscode
+|       settings.json
+|       
++---data
+|   |   responses.db
+|   |   responses_bk.db
+|   |   
+|   +---processed
+|   |       test.csv
+|   |       train.csv
+|   |       train_final.csv
+|   |       train_ready.csv
+|   |       
+|   \---raw
+|           data.csv
+|           Interests.xlsx
+|           
++---kbs
+|   |   knowledge_base.py
+|   |   
+|   \---__pycache__
+|           knowledge_base.cpython-310.pyc
+|           
++---ml
+|   |   evaluate_model.py
+|   |   predict.py
+|   |   train_model.py
+|   |   
+|   \---__pycache__
+|           evaluate_model.cpython-310.pyc
+|           predict.cpython-310.pyc
+|           train_model.cpython-310.pyc
+|           
++---models
+|       classifier.joblib
+|       eval_report.json
+|       feature_cols.joblib
+|       label_encoder.joblib
+|       tuning_report.json
+|       
++---pipeline
+|   |   step1_prepare_dataset.py
+|   |   step2_fix_duplicates.py
+|   |   step3_check_quality.py
+|   |   step4_train_test_split.py
+|   |   
+|   \---__pycache__
+|           step1_prepare_dataset.cpython-310.pyc
+|           step2_fix_duplicates.cpython-310.pyc
+|           step3_check_quality.cpython-310.pyc
+|           
+\---templates
+        dashboard.html
+        model_dashboard.html
+        result.html
+        survey.html
+        
